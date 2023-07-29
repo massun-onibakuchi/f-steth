@@ -6,8 +6,8 @@
     "build": "forge build",
     "test": "forge test -vvv",
     "doc": "forge doc",
-    "lint:check": "prettier --check '**.{sol,js,ts}'",
-    "lint:fix": "prettier --write '**.{sol,js,ts}'",
+    "lint:check": "prettier --check '{src,test}/**/*.{sol,js,ts}'",
+    "lint:fix": "prettier --write '{src,test}/**/*.{sol,js,ts}'",
     "prepare": "husky install"
   },
   "repository": {

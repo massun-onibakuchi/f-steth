@@ -2,7 +2,7 @@
 # The file will be created using the proper values to make Foundry work well with your Hardhat project.
 
 [profile.default]
-solc="0.8.17"
+solc = "0.8.17"
 src = 'src'
 out = 'out'
 libs = ['lib', 'node_modules']
@@ -15,9 +15,7 @@ optimizer_runs = 15000
 
 [fuzz]
 runs = 1000
-
-[fmt]
-line_length = 140
+max_test_rejects = 1200000
 
 [rpc_endpoints]
 # This section lives outside of profiles and defines a table of RPC endpoints, where the key specifies the RPC endpoints's name and the value is the RPC endpoint itself.

@@ -9,13 +9,16 @@ import {IWithdrawalQueueERC721} from "./interfaces/IWithdrawalQueueERC721.sol";
 
 // libs
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {LibArray} from "./LibArray.sol";
 
 // inherits
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-IWETH9 constant WETH = IWETH9(0xc778417E063141139Fce010982780140Aa0cD5Ab);
+import "forge-std/Test.sol";
+
+IWETH9 constant WETH = IWETH9(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
 
 contract FriendlyStETH is Ownable, ERC4626 {
     uint256 constant WAD = 1e18;
@@ -24,16 +27,23 @@ contract FriendlyStETH is Ownable, ERC4626 {
 
     IWstETH public constant wstETH = IWstETH(0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0);
 
-    IWithdrawalQueueERC721 public constant unstEthNft = IWithdrawalQueueERC721(0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1); // prettier-ignore
+    IWithdrawalQueueERC721 public constant unstEthNft =
+        IWithdrawalQueueERC721(0x889edC2eDab5f40e902b864aD4d7AdE8E412F9B1); // prettier-ignore
 
     uint256 constant WITHDRAW_CHUNK_SIZE = 100 ether;
     uint256 constant MIN_BUFFER_PERCENTAGE = 0.05 * 1e18; // 5%
 
+    /// @notice Desired percentage of total assets held as buffer (initially set to 10%)
     uint256 public bufferPercentage = 0.1 * 1e18; // 10%
 
+    /// @notice Maximum size of buffer in ETH (initially set to 100 ETH)
+    /// Prioritizes maxBufferSize over bufferPercentage
     uint256 public maxBufferSize = 100 ether;
 
+    /// @notice Total amount of stETH currently pending for withdrawal
     uint256 public pendingWithdrawalStEthAmount;
+
+    mapping(uint256 => bool) public requestIdsIssuedBySelf;
 
     event RequestWithdrawals(uint256[] requestIds);
     event SetBufferPercentage(uint256 bufferPercentage);
@@ -41,6 +51,7 @@ contract FriendlyStETH is Ownable, ERC4626 {
 
     error InvalidMaxBufferSize();
     error InvalidBufferPercentage();
+    error WithdrawalRequestNotIssuedByThisContract(uint256 requestId);
 
     receive() external payable {}
 
@@ -107,13 +118,18 @@ contract FriendlyStETH is Ownable, ERC4626 {
             return 0;
         }
         // if we have excess weth available, deposit it
-        uint256 depositAmount = _currentBufferBalance - desiredBufferBalance;
-        if (depositAmount > wethAvailable) {
-            depositAmount = wethAvailable;
-        }
 
-        WETH.withdraw(depositAmount);
-        return stETH.submit{value: depositAmount}(address(0));
+        unchecked {
+            uint256 depositAmount = _currentBufferBalance - desiredBufferBalance;
+            if (depositAmount >= wethAvailable) {
+                // skip deposits because we need to left some weth for immediate withdrawals.
+                // we're waiting for withdrawals to complete
+                return 0;
+            }
+
+            WETH.withdraw(depositAmount);
+            return stETH.submit{value: depositAmount}(address(0));
+        }
     }
 
     /// @notice request withdrawal to Lido to make a buffer for immediate withdrawals
@@ -124,28 +140,25 @@ contract FriendlyStETH is Ownable, ERC4626 {
     /// if we have less weth than the buffer size, we will request the difference
     /// if we have more weth than the buffer size, we don't need to request
     /// request is chunked into 100 stETH per request
-    function requestWithdrawalUpToBuffer() external returns (uint256) {
+    /// @return withdrawAmount stEth amount transferred to Lido
+    /// @return requestIds requestIds issued by Lido
+    function requestWithdrawalUpToBuffer() external returns (uint256, uint256[] memory) {
         (uint256 _totalAssets, uint256 _currentBufferBalance, ) = getTotalAssetsAndBufferBalances();
 
         uint256 desiredBufferBalance = Math.min(maxBufferSize, (_totalAssets * bufferPercentage) / WAD);
 
         if (_currentBufferBalance >= desiredBufferBalance) {
             // do nothing
-            return 0;
+            return (0, new uint256[](0));
         }
 
         unchecked {
             uint256 withdrawAmount = desiredBufferBalance - _currentBufferBalance; // no underflow because of if statement above
             uint256 fullChunks = withdrawAmount / WITHDRAW_CHUNK_SIZE;
-            uint256 remaining = withdrawAmount % WITHDRAW_CHUNK_SIZE; // @audit math can be unchecked?
+            uint256 remaining = withdrawAmount % WITHDRAW_CHUNK_SIZE;
             // Initialize an array
-            uint256[] memory amounts = new uint256[](fullChunks + (remaining != 0 ? 1 : 0)); // oveflow would cause memory to bloated and unlikely to happen
-
-            // Populate the array
-            for (uint256 i = 0; i < fullChunks; ) {
-                amounts[i] = WITHDRAW_CHUNK_SIZE;
-                ++i; // no overflow
-            }
+            // oveflow would cause memory to bloated and unlikely to happen
+            uint256[] memory amounts = LibArray.fill(fullChunks + (remaining != 0 ? 1 : 0), WITHDRAW_CHUNK_SIZE);
             if (remaining != 0) {
                 amounts[fullChunks] = remaining;
             }
@@ -155,9 +168,12 @@ contract FriendlyStETH is Ownable, ERC4626 {
             // request withdrawals
             // transfer stEth to unstEthNft
             uint256[] memory requestIds = unstEthNft.requestWithdrawals(amounts, address(this));
+            uint256 length = requestIds.length;
+            for (uint256 i = 0; i < length; ++i) {
+                requestIdsIssuedBySelf[requestIds[i]] = true;
+            }
             emit RequestWithdrawals(requestIds);
-
-            return withdrawAmount;
+            return (withdrawAmount, requestIds);
         }
     }
 
@@ -166,6 +182,17 @@ contract FriendlyStETH is Ownable, ERC4626 {
     /// @param hints valid hints
     function claimWithdrawals(uint256[] calldata requestIds, uint256[] calldata hints) external returns (uint256) {
         // optimistically assume all requestIds are valid and successful
+        // request must be issued by this contract itself.
+        // this is required because someone can transfer unstEthNft to this contract and call claimWithdrawals
+        // and pendingWithdrawalStEthAmount will behave incorrectly
+        uint256 length = requestIds.length;
+        for (uint256 i = 0; i < length; ) {
+            if (!requestIdsIssuedBySelf[requestIds[i]]) revert WithdrawalRequestNotIssuedByThisContract(requestIds[i]);
+            unchecked {
+                ++i;
+            }
+        }
+        // optimstically sum pending stETH.
         IWithdrawalQueueERC721.WithdrawalRequestStatus[] memory statuses = unstEthNft.getWithdrawalStatus(requestIds);
         pendingWithdrawalStEthAmount -= sumWithdrawnStEth(statuses); // @audit stETH 1-2 wei rounding error
 
@@ -214,7 +241,7 @@ contract FriendlyStETH is Ownable, ERC4626 {
     }
 
     function setBufferPercentage(uint256 _bufferPercentage) external onlyOwner {
-        if (_bufferPercentage < MIN_BUFFER_PERCENTAGE || _bufferPercentage > WAD) {
+        if (_bufferPercentage < MIN_BUFFER_PERCENTAGE || _bufferPercentage >= WAD) {
             revert InvalidBufferPercentage();
         }
         bufferPercentage = _bufferPercentage;
