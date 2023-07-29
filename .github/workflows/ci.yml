@@ -58,9 +58,6 @@ jobs:
       - name: Run forge tests
         run: forge test -vvv
 
-      - name: Run hardhat tests
-        run: yarn test
-
       - name: Add test summary
         run: |
           echo '## Test results' >> $GITHUB_STEP_SUMMARY

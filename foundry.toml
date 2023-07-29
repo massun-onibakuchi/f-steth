@@ -16,6 +16,9 @@ optimizer_runs = 15000
 [fuzz]
 runs = 1000
 
+[fmt]
+line_length = 140
+
 [rpc_endpoints]
 # This section lives outside of profiles and defines a table of RPC endpoints, where the key specifies the RPC endpoints's name and the value is the RPC endpoint itself.
 # The value can either be a valid RPC endpoint or a reference to an environment variable (wrapped with in ${}).
