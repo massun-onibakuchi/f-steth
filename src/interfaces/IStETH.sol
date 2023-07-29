@@ -25,4 +25,8 @@ interface IStETH is IERC20 {
     function getTotalShares() external view returns (uint256);
 
     function getTotalPooledEther() external view returns (uint256);
+
+    function transferShares(address _recipient, uint256 _sharesAmount) external returns (uint256);
+
+    function sharesOf(address _account) external returns (uint256);
 }

@@ -1,8 +1,4 @@
-# <h1 align="center"> Hardhat Foundry Template </h1>
-
-Highly opinionated template for smart contract development.
-
-Combines hardhat and foundry testing frameworks to take advantage of coverage and fuzzing capabiltiies, along with their native tools.
+# <h1 align="center"> Friendly StETH </h1>
 
 ## Getting Started
 
@@ -38,29 +34,6 @@ forge test -vvv
 ```
 
 For more information on how to use Foundry, check out the [Foundry Github Repository](https://github.com/foundry-rs/foundry/tree/master/forge) or type `forge help` in your terminal.
-
-### Install Libraries
-
-- Install libraries with Foundry which work with Hardhat.
-
-```bash
-forge install openzeppelin/openzeppelin-contracts # just an example
-```
-
-And then update remappings in `foundry.toml`.
-
-```
-remappings = [
-    "@openzeppelin/=lib/openzeppelin-contracts/",
-]
-```
-
-This will allow you to import libraries like this:
-
-```solidity
-// Instead of import "lib/openzeppelin-contracts/token/ERC20/ERC20.sol";
-import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
-```
 
 ## Resources
 
