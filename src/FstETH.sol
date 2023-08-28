@@ -107,11 +107,7 @@ contract FriendlyStETH is Ownable, ERC4626 {
     /// if we have more weth than the buffer size, we will deposit the difference
     /// but if we don't have enough weth to deposit, we will deposit all the weth we have
     function submit() external returns (uint256) {
-        (
-            uint256 _totalAssets,
-            uint256 _currentBufferBalance,
-            uint256 wethAvailable
-        ) = getTotalAssetsAndBufferBalances();
+        (uint256 _totalAssets, uint256 _currentBufferBalance, uint256 wethAvailable) = getTotalAssetsAndBufferBalances();
         uint256 desiredBufferBalance = Math.min(maxBufferSize, (_totalAssets * bufferPercentage) / WAD);
 
         if (desiredBufferBalance >= _currentBufferBalance) {
@@ -143,7 +139,7 @@ contract FriendlyStETH is Ownable, ERC4626 {
     /// @return withdrawAmount stEth amount transferred to Lido
     /// @return requestIds requestIds issued by Lido
     function requestWithdrawalUpToBuffer() external returns (uint256, uint256[] memory) {
-        (uint256 _totalAssets, uint256 _currentBufferBalance, ) = getTotalAssetsAndBufferBalances();
+        (uint256 _totalAssets, uint256 _currentBufferBalance,) = getTotalAssetsAndBufferBalances();
 
         uint256 desiredBufferBalance = Math.min(maxBufferSize, (_totalAssets * bufferPercentage) / WAD);
 
@@ -186,7 +182,7 @@ contract FriendlyStETH is Ownable, ERC4626 {
         // this is required because someone can transfer unstEthNft to this contract and call claimWithdrawals
         // and pendingWithdrawalStEthAmount will behave incorrectly
         uint256 length = requestIds.length;
-        for (uint256 i = 0; i < length; ) {
+        for (uint256 i = 0; i < length;) {
             if (!requestIdsIssuedBySelf[requestIds[i]]) revert WithdrawalRequestNotIssuedByThisContract(requestIds[i]);
             unchecked {
                 ++i;
@@ -213,11 +209,13 @@ contract FriendlyStETH is Ownable, ERC4626 {
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     /// Sums the amount of stETH withdrawn
-    function sumWithdrawnStEth(
-        IWithdrawalQueueERC721.WithdrawalRequestStatus[] memory _statuses
-    ) internal pure returns (uint256 total) {
+    function sumWithdrawnStEth(IWithdrawalQueueERC721.WithdrawalRequestStatus[] memory _statuses)
+        internal
+        pure
+        returns (uint256 total)
+    {
         uint256 len = _statuses.length;
-        for (uint256 i = 0; i < len; ) {
+        for (uint256 i = 0; i < len;) {
             total += _statuses[i].amountOfStETH;
             unchecked {
                 ++i;

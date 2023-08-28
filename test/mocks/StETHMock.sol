@@ -18,7 +18,7 @@ contract StETHMock is ERC20 {
         _burn(holder, amount);
     }
 
-    function submit(address /*referral*/) external payable returns (uint256) {
+    function submit(address /*referral*/ ) external payable returns (uint256) {
         uint256 sharesToMint = getSharesByPooledEth(msg.value);
         _mint(msg.sender, sharesToMint);
         return sharesToMint;

@@ -28,9 +28,8 @@ contract RequestUnitTest is RequestTest {
 
     /// @dev Helper function to get withdrawal requests
     function getWithdrawalRequests(address _owner) external view returns (uint256[] memory requestsIds) {
-        (bool s, bytes memory returndata) = address(unstEthNft).staticcall(
-            abi.encodeWithSignature("getWithdrawalRequests(address)", _owner)
-        );
+        (bool s, bytes memory returndata) =
+            address(unstEthNft).staticcall(abi.encodeWithSignature("getWithdrawalRequests(address)", _owner));
         require(s, string(returndata));
         return abi.decode(returndata, (uint256[]));
     }

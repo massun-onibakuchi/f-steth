@@ -10,12 +10,7 @@ abstract contract RequestTest is Fixture {
 
     function _requestWithdrawal() internal returns (uint256 withdrawAmount) {
         uint256 before = fstETH.pendingWithdrawalStEthAmount();
-        (withdrawAmount, ) = fstETH.requestWithdrawalUpToBuffer();
-        assertApproxEqAbs(
-            fstETH.pendingWithdrawalStEthAmount(),
-            before + withdrawAmount,
-            2,
-            "pending withdrawal delta"
-        );
+        (withdrawAmount,) = fstETH.requestWithdrawalUpToBuffer();
+        assertApproxEqAbs(fstETH.pendingWithdrawalStEthAmount(), before + withdrawAmount, 2, "pending withdrawal delta");
     }
 }

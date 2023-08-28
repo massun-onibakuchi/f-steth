@@ -6,8 +6,8 @@
     "build": "forge build",
     "test": "forge test -vvv",
     "doc": "forge doc",
-    "lint:check": "prettier --check '{src,test}/**/*.{sol,js,ts}'",
-    "lint:fix": "prettier --write '{src,test}/**/*.{sol,js,ts}'",
+    "lint:check": "forge fmt --check",
+    "lint:fix": "forge fmt",
     "prepare": "husky install"
   },
   "repository": {
@@ -34,9 +34,7 @@
     "npm": ">=7.0.0"
   },
   "lint-staged": {
-    "*.sol": "prettier --write",
-    "*.js": "prettier --write",
-    "*.ts": "prettier --write"
+    "*.sol": "forge fmt"
   },
   "private": "false"
 }

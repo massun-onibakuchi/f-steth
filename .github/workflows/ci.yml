@@ -9,20 +9,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install Node.js
-        uses: actions/setup-node@v2
-
       - name: Clone repo
         uses: actions/checkout@v2
 
-      - name: Install yarn
-        run: npm i -g yarn
-
-      - name: Install dependencies
-        run: yarn install
-
       - name: Check contracts are linted
-        run: yarn lint:check
+        run: forge fmt --check
 
       - name: Add lint summary
         run: |
@@ -41,16 +32,10 @@ jobs:
       - name: Install node
         uses: actions/setup-node@v2
 
-      - name: Install yarn
-        run: npm i -g yarn
-
       - name: Clone repo with submodules
         uses: actions/checkout@v2
         with:
           submodules: recursive
-
-      - name: Install dependencies
-        run: yarn install
 
       - name: Show Foundry config
         run: forge config
@@ -77,12 +62,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: recursive
-
-      - run: forge coverage --report=summary --silent > ./summary.md
-      - name: Add coverage summary
-        run: |
-          echo '## Coverage results' >> $GITHUB_STEP_SUMMARY
-          echo "$(cat ./summary.md)" >> $GITHUB_STEP_SUMMARY
 
       - run: forge coverage --report=lcov --silent > ./lcov.info
       - uses: codecov/codecov-action@v3

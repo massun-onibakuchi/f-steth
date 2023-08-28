@@ -17,10 +17,11 @@ contract WithdrawalQueueERC721Mock is IWithdrawalQueueERC721, ERC721("UnstETH", 
 
     mapping(uint256 => WithdrawalRequestStatus) public requests;
 
-    function requestWithdrawals(
-        uint256[] calldata _amounts,
-        address _owner
-    ) external override returns (uint256[] memory requestIds) {
+    function requestWithdrawals(uint256[] calldata _amounts, address _owner)
+        external
+        override
+        returns (uint256[] memory requestIds)
+    {
         requestIds = new uint256[](_amounts.length);
         for (uint256 i = 0; i < _amounts.length; i++) {
             totalSupply += 1;
@@ -38,10 +39,11 @@ contract WithdrawalQueueERC721Mock is IWithdrawalQueueERC721, ERC721("UnstETH", 
         }
     }
 
-    function claimWithdrawals(
-        uint256[] calldata requestIds,
-        uint256[] calldata /* hints */
-    ) external override returns (uint256 total) {
+    function claimWithdrawals(uint256[] calldata requestIds, uint256[] calldata /* hints */ )
+        external
+        override
+        returns (uint256 total)
+    {
         for (uint256 i = 0; i < requestIds.length; i++) {
             require(!requests[requestIds[i]].isClaimed, "already claimed");
             require(requests[requestIds[i]].isFinalized, "not finalized");
@@ -53,9 +55,12 @@ contract WithdrawalQueueERC721Mock is IWithdrawalQueueERC721, ERC721("UnstETH", 
         payable(msg.sender).transfer(total);
     }
 
-    function getWithdrawalStatus(
-        uint256[] calldata _requestIds
-    ) external view override returns (WithdrawalRequestStatus[] memory statuses) {
+    function getWithdrawalStatus(uint256[] calldata _requestIds)
+        external
+        view
+        override
+        returns (WithdrawalRequestStatus[] memory statuses)
+    {
         statuses = new WithdrawalRequestStatus[](_requestIds.length);
         for (uint256 i = 0; i < _requestIds.length; i++) {
             statuses[i] = requests[_requestIds[i]];

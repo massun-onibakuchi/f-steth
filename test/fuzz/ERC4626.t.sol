@@ -91,14 +91,16 @@ contract ERC4626StdTest is BaseTest, ERC4626Test {
         fstETH.submit();
         if (init.yield >= 0) {
             // gain
-            try StETHMock(address(stETH)).mint(_vault_, uint256(init.yield)) {} catch {
+            try StETHMock(address(stETH)).mint(_vault_, uint256(init.yield)) {}
+            catch {
                 vm.assume(false);
             }
         } else {
             // loss
             vm.assume(init.yield > type(int256).min); // avoid overflow in conversion
             uint256 loss = uint256(-1 * init.yield);
-            try StETHMock(address(stETH)).slash(_vault_, loss) {} catch {
+            try StETHMock(address(stETH)).slash(_vault_, loss) {}
+            catch {
                 vm.assume(false);
             }
         }
